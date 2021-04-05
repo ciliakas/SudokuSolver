@@ -6,19 +6,6 @@ using System.Threading.Tasks;
 
 namespace Sudoku
 {
-    [Flags]
-    public enum BoardState
-    {
-        Valid = 1,// 000001
-        Invalid = 2, // 000010
-        InPlay = 4, // 000100
-        Ended = 8, // 001000
-        ValidInPlay = Valid | InPlay,
-        ValidEnded = Valid | Ended
-        //InvalidInPlay = Invalid | InPlay,
-        //InvalidEnded = Invalid | Ended
-    }
-
     public class Board : IEquatable<Board>
     {
         private int _size;
@@ -35,29 +22,18 @@ namespace Sudoku
                 _maxRcbPosition = _maxValue - 1;
                 _maxPosition = _maxValue * _maxValue;
             }
-
         }
+
+        public int MaxValue => _maxValue;
+        public int MaxRcbPosition => _maxRcbPosition;
+        public int MaxPosition => _maxPosition;
+        public BoardState BoardState => CheckState();
 
         public List<List<int>> Cells { get; private set; }
 
         private Board()
         {
 
-        }
-
-        public static Board DifficultBoard()
-        {
-            var row0 = new List<int> { 8, 0, 0, 0, 0, 0, 0, 0, 0 };
-            var row1 = new List<int> { 0, 0, 3, 6, 0, 0, 0, 0, 0 };
-            var row2 = new List<int> { 0, 7, 0, 0, 9, 0, 2, 0, 0 };
-            var row3 = new List<int> { 0, 5, 0, 0, 0, 7, 0, 0, 0 };
-            var row4 = new List<int> { 0, 0, 0, 0, 4, 5, 7, 0, 0 };
-            var row5 = new List<int> { 0, 0, 0, 1, 0, 0, 0, 3, 0 };
-            var row6 = new List<int> { 0, 0, 1, 0, 0, 0, 0, 6, 8 };
-            var row7 = new List<int> { 0, 0, 8, 5, 0, 0, 0, 1, 0 };
-            var row8 = new List<int> { 0, 9, 0, 0, 0, 0, 4, 0, 0 };
-            var rowList = new List<List<int>> { row0, row1, row2, row3, row4, row5, row6, row7, row8 };
-            return new Board(3, rowList);
         }
 
         public Board(int size)
@@ -67,35 +43,22 @@ namespace Sudoku
 
             Cells = GenerateEmptyBoard();
         }
-        private Board(int size, List<List<int>> cells)
+
+        public Board(int size, List<List<int>> cells)
         {
             Size = size;
             Cells = cells;
         }
 
-        public static Board Example()
-        {
-            var row0 = new List<int> { 0, 0, 0, 0, 4, 0, 0, 0, 6 };
-            var row1 = new List<int> { 4, 1, 0, 5, 2, 0, 0, 0, 0 };
-            var row2 = new List<int> { 0, 8, 3, 7, 0, 0, 5, 0, 0 };
-            var row3 = new List<int> { 3, 0, 0, 8, 0, 0, 0, 0, 0 };
-            var row4 = new List<int> { 0, 0, 0, 0, 7, 0, 4, 3, 0 };
-            var row5 = new List<int> { 0, 2, 4, 0, 0, 0, 0, 6, 7 };
-            var row6 = new List<int> { 7, 4, 1, 0, 9, 3, 6, 5, 8 };
-            var row7 = new List<int> { 0, 0, 0, 0, 8, 1, 0, 0, 2 };
-            var row8 = new List<int> { 2, 9, 8, 6, 5, 7, 1, 4, 0 };
-            var rowList = new List<List<int>> { row0, row1, row2, row3, row4, row5, row6, row7, row8 };
-            return new Board(3, rowList);
-        }
+
 
         public void SolveDeductively()
         {
             /*
              * Possible rules:
-             * 1. Only one empty space left in row/column/box
+             * 1. Only one empty space left in row/column/box DONE
              * 2. The number can not be anywhere else in row/column/box
              *
-             * 1.1 Check for empty one in list? Convert the r/c/b to a list, and check if there is only 1 zero, if it is the only one,
              */
             for (var i = 0; i < _maxPosition; i++)
             {
@@ -106,14 +69,14 @@ namespace Sudoku
             }
         }
 
-        public bool TrySingleChoiceStrategy(int position)
+        private bool TrySingleChoiceStrategy(int position)
         {
             if (position < 0 || position >= _maxPosition)
                 throw new ArgumentException(); // e.g. position should be between 0 and 80
             var (rowPosition, columnPosition) = Get2DPositionFrom1D(position);
             if (Cells[rowPosition][columnPosition] != 0) return false;
 
-        var row = RowFromPosition(position);
+            var row = RowFromPosition(position);
             if (row.Count(i => i == 0) == 1)
             {
                 Cells[rowPosition][columnPosition] = FindMissingNumber(row);
@@ -131,20 +94,16 @@ namespace Sudoku
                 Cells[rowPosition][columnPosition] = FindMissingNumber(box);
                 return true;
             }
-
-            //Console.WriteLine(row.Count(i => i == 0));
-            //Console.WriteLine(column.Count(i => i == 0));
-            //Console.WriteLine(box.Count(i => i == 0));
             return false;
         }
 
-        public Tuple<int, int> Get2DPositionFrom1D(int position)
+        private Tuple<int, int> Get2DPositionFrom1D(int position)
         {
             if (position < 0 || position >= _maxPosition) throw new ArgumentException(); // e.g. position should be between 0 and 80
             return new Tuple<int, int>(position / _maxValue, position % _maxValue);
         }
 
-        public int FindMissingNumber(IList<int> list)
+        private int FindMissingNumber(IList<int> list)
         {
             var fullSum = 0;
             for (var i = 1; i <= list.Count; i++)
@@ -154,19 +113,19 @@ namespace Sudoku
             return fullSum - list.Sum();
         }
 
-        public List<int> RowFromPosition(int position)
+        private List<int> RowFromPosition(int position)
         {
             if (position < 0 || position >= _maxPosition) throw new ArgumentException(); // e.g. position should be between 0 and 80
             return Cells[position / _maxValue];
         }
 
-        public List<int> ColumnFromPosition(int position)
+        private List<int> ColumnFromPosition(int position)
         {
             if (position < 0 || position >= _maxPosition) throw new ArgumentException(); // e.g. position should be between 0 and 80
             return ConvertColumnToList(position % _maxValue);
         }
 
-        public List<int> BoxFromPosition(int position)
+        private List<int> BoxFromPosition(int position)
         {
             if (position < 0 || position >= _maxPosition) throw new ArgumentException(); // e.g. position should be between 0 and 80
 

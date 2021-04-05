@@ -20,32 +20,15 @@ namespace Sudoku
             //Console.WriteLine(sp.Elapsed);
 
             //sp.Reset();
-            var exampleBoard = Board.Example();
+            var exampleBoard = BoardExamples.Example();
             exampleBoard.Paint();
             exampleBoard.SolveDeductively();
             exampleBoard.Paint();
-            //var d = 80;
-            ////exampleBoard.Get2DPositionFrom1D(d);
-            //exampleBoard.TrySingleChoiceStrategy(d);
-            //var a = exampleBoard.RowFromPosition(d);
-            //var b = exampleBoard.ColumnFromPosition(d);
-            //var c = exampleBoard.BoxFromPosition(d);
-            //foreach (var t in a)
-            //{
-            //    Console.Write(t);
-            //}
 
-            //Console.WriteLine();
-            //foreach (var t in b)
-            //{
-            //    Console.Write(t);
-            //}
+            //implement strategy pattern and  clean up code!!!!! NOTICE ME
+            // move the things that solve the board to different classes, and the actual common things leave in the board
+            // for example checking of states is left in the board
 
-            //Console.WriteLine();
-            //foreach (var t in c)
-            //{
-            //    Console.Write(t);
-            //}
 
             //sp.Start();
             //await exampleBoard.SolveRecursively(false);
