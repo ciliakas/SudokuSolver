@@ -20,9 +20,20 @@ namespace Sudoku
             //Console.WriteLine(sp.Elapsed);
 
             //sp.Reset();
-            var exampleBoard = BoardExamples.Example();
+
+
+
+            var exampleBoard = BoardExamples.VeryEasyExample();
+
             exampleBoard.Paint();
+            //for (int i = 0; i < 81; i++)
+            //{
+            //    exampleBoard.BoxFromPosition(i);
+            //}
+
             exampleBoard.SolveDeductively();
+            //exampleBoard.SolvePrimitively();
+            //exampleBoard.SolveDeductively();
             exampleBoard.Paint();
 
             //implement strategy pattern and  clean up code!!!!! NOTICE ME
