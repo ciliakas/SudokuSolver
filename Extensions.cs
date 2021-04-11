@@ -6,6 +6,17 @@ namespace Sudoku
 {
     public static class Extensions
     {
+        public static int FindMissingNumber(this IEnumerable<int> list)
+        {
+            var fullSum = 0;
+            var array = list.ToArray();
+            for (var i = 1; i <= array.Length; i++)
+            {
+                fullSum += i;
+            }
+            return fullSum - array.Sum();
+        }
+
         public static List<List<int>> Clone(this IEnumerable<List<int>> originalList)
         {
             return originalList.Select(innerList => innerList.ToList()).ToList();

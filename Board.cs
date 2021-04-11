@@ -38,6 +38,52 @@ namespace Sudoku
         }
     }
 
+    public class RecursiveSolve : ISolvingStrategy
+    {
+        public bool ShowProcess { get; }
+        public bool Randomized { get; }
+
+        public RecursiveSolve(bool showProcess = true, bool randomized = true)
+        {
+            ShowProcess = showProcess;
+            Randomized = randomized;
+        }
+
+        public void Solve(Board board)
+        {
+            SolveRecursively(board);
+        }
+
+        private bool SolveRecursively(Board board)
+        {
+            var size = board.Size;
+            var cells = board.Cells;
+            var state = board.BoardState;
+            if (state == BoardState.ValidEnded) return true;
+            if (state != BoardState.ValidInPlay) return false;
+
+            var baseBoard = cells;
+            var random = new Random();
+            var sequence = Randomized ? random.Sequence(1, size * size + 1) : Extensions.Fill(1, size * size);
+            foreach (var num in sequence)
+            {
+                var tempBoard = new Board(size, baseBoard.Clone());
+                tempBoard.FillNext(num);
+                var screenShot = ShowProcess ? new Board(size, tempBoard.Cells.Clone()) : null;
+                if (!SolveRecursively(tempBoard)) continue;
+
+                board.Cells = tempBoard.Cells;
+                if (ShowProcess)
+                {
+                    screenShot.Paint();
+                }
+                return true;
+            }
+            return false;
+        }
+    }
+
+
     public class Board : IEquatable<Board>
     {
         private int _size;
@@ -61,7 +107,7 @@ namespace Sudoku
         public int MaxPosition => _maxPosition;
         public BoardState BoardState => CheckState();
 
-        public List<List<int>> Cells { get; private set; }
+        public List<List<int>> Cells { get; set; }
 
         public Board(int size)
         {
@@ -107,19 +153,19 @@ namespace Sudoku
             var row = Cells[RowFromPosition(position)];
             if (row.Count(i => i == 0) == 1)
             {
-                Cells[rowPosition][columnPosition] = FindMissingNumber(row);
+                Cells[rowPosition][columnPosition] = row.FindMissingNumber();
                 return true;
             }
             var column = ConvertColumnToList(ColumnFromPosition(position));
             if (column.Count(i => i == 0) == 1)
             {
-                Cells[rowPosition][columnPosition] = FindMissingNumber(column);
+                Cells[rowPosition][columnPosition] = column.FindMissingNumber();
                 return true;
             }
             var box = ConvertBoxToList(BoxFromPosition(position));
             if (box.Count(i => i == 0) == 1)
             {
-                Cells[rowPosition][columnPosition] = FindMissingNumber(box);
+                Cells[rowPosition][columnPosition] = box.FindMissingNumber();
                 return true;
             }
             return false;
@@ -127,27 +173,11 @@ namespace Sudoku
 
 
         //Board specific
-        private Tuple<int, int> Get2DPositionFrom1D(int position)
+        public Tuple<int, int> Get2DPositionFrom1D(int position)
         {
             if (position < 0 || position >= _maxPosition) throw new ArgumentException(); // e.g. position should be between 0 and 80
             return new Tuple<int, int>(position / _maxValue, position % _maxValue);
         }
-
-
-
-        //General for lists
-        private int FindMissingNumber(IList<int> list)
-        {
-            var fullSum = 0;
-            for (var i = 1; i <= list.Count; i++)
-            {
-                fullSum += i;
-            }
-            return fullSum - list.Sum();
-        }
-
-
-
 
         //Board specific
         public int RowFromPosition(int position)
@@ -170,37 +200,26 @@ namespace Sudoku
             return (position / _maxValue / Size * 3) + (position % _maxValue / Size);
         }
 
-
-
-
-        public async Task<bool> SolveRecursively(bool showProcess = true, bool randomized = true)
+        public List<int> ConvertBoxToList(int number)
         {
-            var state = BoardState;
-            if (state == BoardState.ValidEnded) return true;
-            if (state != BoardState.ValidInPlay) return false;
+            if (number < 0 || number > _maxRcbPosition) throw new ArgumentException();
 
-            var baseBoard = Cells;
-            var random = new Random();
-            var sequence = randomized ? random.Sequence(1, Size * Size + 1) : Extensions.Fill(1, Size * Size);
-            foreach (var num in sequence)
-            {
-                var tempBoard = new Board(Size, baseBoard.Clone());
-                tempBoard.FillNext(num);
-                var screenShot = showProcess ? new Board(Size, tempBoard.Cells.Clone()) : null;
-                if (!await tempBoard.SolveRecursively(showProcess)) continue;
-
-                Cells = tempBoard.Cells;
-                if (showProcess)
-                {
-                    screenShot.Paint();
-                }
-                return true;
-            }
-            return false;
+            return ConvertBoxToList(number / Size, number % Size);
         }
 
+        public List<int> ConvertBoxToList(int row, int column)
+        {
+            if (row < 0 || column < 0 || row > Size - 1 || column > Size - 1) throw new ArgumentException();
 
+            return Cells.Skip(row * Size).Take(Size).SelectMany(col => col.Skip(column * Size).Take(Size).ToList()).ToList();
+        }
 
+        public List<int> ConvertColumnToList(int column)
+        {
+            if (column < 0 || column > _maxRcbPosition) throw new ArgumentException();
+
+            return Cells.Select(row => row[column]).ToList();
+        }
 
 
 
@@ -218,58 +237,6 @@ namespace Sudoku
                 var columnState = CheckColumn(i);
                 var state = (boxState | rowState | columnState) & BoardState.Invalid;
                 if (state == BoardState.Invalid) return playState | BoardState.Invalid;
-            }
-            return playState | BoardState.Valid;
-        }
-
-        public void FillNext(int value)
-        {
-            if (value < 1 || value > _maxValue) throw new ArgumentException();
-
-            foreach (var row in Cells)
-            {
-                for (var j = 0; j < row.Count; j++)
-                {
-                    if (row[j] != 0) continue;
-                    row[j] = value;
-                    return;
-                }
-            }
-        }
-
-        private List<int> ConvertBoxToList(int number)
-        {
-            if (number < 0 || number > _maxRcbPosition) throw new ArgumentException();
-
-            return ConvertBoxToList(number / Size, number % Size);
-        }
-
-        private List<int> ConvertBoxToList(int row, int column)
-        {
-            if (row < 0 || column < 0 || row > Size - 1 || column > Size - 1) throw new ArgumentException();
-
-            return Cells.Skip(row * Size).Take(Size).SelectMany(col => col.Skip(column * Size).Take(Size).ToList()).ToList();
-        }
-
-        private List<int> ConvertColumnToList(int column)
-        {
-            if (column < 0 || column > _maxRcbPosition) throw new ArgumentException();
-
-            return Cells.Select(row => row[column]).ToList();
-        }
-        private static BoardState CheckLineState(IList<int> list)
-        {
-            var playState = list.Contains(0) ? BoardState.InPlay : BoardState.Ended;
-            for (var i = 0; i < list.Count - 1; i++)
-            {
-                if (list[i] == 0) continue;
-                for (var j = i + 1; j < list.Count; j++)
-                {
-                    if (list[j] == 0) continue;
-                    if (list[i] != list[j]) continue;
-
-                    return playState | BoardState.Invalid;
-                }
             }
             return playState | BoardState.Valid;
         }
@@ -297,19 +264,21 @@ namespace Sudoku
             return CheckLineState(ConvertColumnToList(column));
         }
 
-        public void WriteToCell(int row, int column, int value)
+        private static BoardState CheckLineState(IList<int> list)
         {
-            if (row < 0 || column < 0 || value < 1 || row > _maxRcbPosition || column > _maxRcbPosition || value > _maxValue) throw new ArgumentException();
-            if (Cells[row][column] != 0) return;
+            var playState = list.Contains(0) ? BoardState.InPlay : BoardState.Ended;
+            for (var i = 0; i < list.Count - 1; i++)
+            {
+                if (list[i] == 0) continue;
+                for (var j = i + 1; j < list.Count; j++)
+                {
+                    if (list[j] == 0) continue;
+                    if (list[i] != list[j]) continue;
 
-            Cells[row][column] = value;
-        }
-
-        private void OverwriteCell(int row, int column, int value)
-        {
-            if (row < 0 || column < 0 || value < 1 || row > _maxRcbPosition || column > _maxRcbPosition || value > _maxValue) throw new ArgumentException();
-
-            Cells[row][column] = value;
+                    return playState | BoardState.Invalid;
+                }
+            }
+            return playState | BoardState.Valid;
         }
 
         private List<List<int>> GenerateEmptyBoard()
@@ -325,6 +294,36 @@ namespace Sudoku
                 emptyBoard.Add(emptyRow);
             }
             return emptyBoard;
+        }
+
+        public void FillNext(int value)
+        {
+            if (value < 1 || value > _maxValue) throw new ArgumentException();
+
+            foreach (var row in Cells)
+            {
+                for (var j = 0; j < row.Count; j++)
+                {
+                    if (row[j] != 0) continue;
+                    row[j] = value;
+                    return;
+                }
+            }
+        }
+
+        public void WriteToCell(int row, int column, int value)
+        {
+            if (row < 0 || column < 0 || value < 1 || row > _maxRcbPosition || column > _maxRcbPosition || value > _maxValue) throw new ArgumentException();
+            if (Cells[row][column] != 0) return;
+
+            Cells[row][column] = value;
+        }
+
+        private void OverwriteCell(int row, int column, int value)
+        {
+            if (row < 0 || column < 0 || value < 1 || row > _maxRcbPosition || column > _maxRcbPosition || value > _maxValue) throw new ArgumentException();
+
+            Cells[row][column] = value;
         }
 
         public override string ToString()

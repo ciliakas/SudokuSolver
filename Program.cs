@@ -31,7 +31,12 @@ namespace Sudoku
             //    exampleBoard.BoxFromPosition(i);
             //}
 
-            exampleBoard.SolveDeductively();
+            //exampleBoard.SolveDeductively();
+
+            var solver = new RecursiveSolve();
+            solver.Solve(exampleBoard);
+
+
             //exampleBoard.SolvePrimitively();
             //exampleBoard.SolveDeductively();
             exampleBoard.Paint();
