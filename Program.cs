@@ -23,7 +23,8 @@ namespace Sudoku
 
 
 
-            var exampleBoard = BoardExamples.VeryEasyExample();
+            var exampleBoard = BoardExamples.Example();
+            var exampleBoard1 = BoardExamples.Example();
 
             exampleBoard.Paint();
             //for (int i = 0; i < 81; i++)
@@ -33,13 +34,20 @@ namespace Sudoku
 
             //exampleBoard.SolveDeductively();
 
-            var solver = new RecursiveSolve();
-            solver.Solve(exampleBoard);
+            var primitiveSolver = new PrimitiveSolve();
+            var recursiveSolver = new RecursiveSolve();
+            var deductiveSolver = new DeductiveSolve();
+            exampleBoard.Solve(deductiveSolver);
+            exampleBoard.Paint();
+            Console.WriteLine("Correct solve");
+            exampleBoard1.Solve(recursiveSolver);
+            exampleBoard1.Paint();
+            Console.WriteLine(exampleBoard1.Equals(exampleBoard));
+            //exampleBoard.SolveDeductively();
 
 
             //exampleBoard.SolvePrimitively();
             //exampleBoard.SolveDeductively();
-            exampleBoard.Paint();
 
             //implement strategy pattern and  clean up code!!!!! NOTICE ME
             // move the things that solve the board to different classes, and the actual common things leave in the board

@@ -6,84 +6,6 @@ using System.Threading.Tasks;
 
 namespace Sudoku
 {
-    public interface ISolvingStrategy
-    {
-        void Solve(Board board);
-    }
-
-    public class PrimitiveSolve : ISolvingStrategy
-    {
-        public void Solve(Board board)
-        {
-            var size = board.Size;
-            var cells = board.Cells;
-            var baseBoard = board.Cells.Clone();
-            var random = new Random();
-            do
-            {
-                var sequence = random.Sequence(1, size * size + 1);
-                var changed = false;
-                var tempBoard = new Board(size, cells.Clone());
-                foreach (var num in sequence)
-                {
-                    tempBoard = new Board(size, cells.Clone());
-                    tempBoard.FillNext(num);
-                    if ((tempBoard.BoardState & BoardState.Invalid) == BoardState.Invalid) continue;
-
-                    changed = true;
-                    break;
-                }
-                cells = changed ? tempBoard.Cells.Clone() : baseBoard.Clone();
-            } while (board.BoardState != BoardState.ValidEnded);
-        }
-    }
-
-    public class RecursiveSolve : ISolvingStrategy
-    {
-        public bool ShowProcess { get; }
-        public bool Randomized { get; }
-
-        public RecursiveSolve(bool showProcess = true, bool randomized = true)
-        {
-            ShowProcess = showProcess;
-            Randomized = randomized;
-        }
-
-        public void Solve(Board board)
-        {
-            SolveRecursively(board);
-        }
-
-        private bool SolveRecursively(Board board)
-        {
-            var size = board.Size;
-            var cells = board.Cells;
-            var state = board.BoardState;
-            if (state == BoardState.ValidEnded) return true;
-            if (state != BoardState.ValidInPlay) return false;
-
-            var baseBoard = cells;
-            var random = new Random();
-            var sequence = Randomized ? random.Sequence(1, size * size + 1) : Extensions.Fill(1, size * size);
-            foreach (var num in sequence)
-            {
-                var tempBoard = new Board(size, baseBoard.Clone());
-                tempBoard.FillNext(num);
-                var screenShot = ShowProcess ? new Board(size, tempBoard.Cells.Clone()) : null;
-                if (!SolveRecursively(tempBoard)) continue;
-
-                board.Cells = tempBoard.Cells;
-                if (ShowProcess)
-                {
-                    screenShot.Paint();
-                }
-                return true;
-            }
-            return false;
-        }
-    }
-
-
     public class Board : IEquatable<Board>
     {
         private int _size;
@@ -123,52 +45,9 @@ namespace Sudoku
             Cells = cells;
         }
 
-
-
-        public void SolveDeductively()
+        public void Solve(ISolvingStrategy solvingStrategy)
         {
-            /*
-             * Possible rules:
-             * 1. Only one empty space left in row/column/box DONE
-             * 2. The number can not be anywhere else in row/column/box
-             *
-             */
-            for (var i = 0; i < _maxPosition; i++)
-            {
-                if (TrySingleChoiceStrategy(i))
-                {
-                    i = 0;
-                }
-            }
-        }
-
-        private bool TrySingleChoiceStrategy(int position)
-        {
-            if (position < 0 || position >= _maxPosition)
-                throw new ArgumentException(); // e.g. position should be between 0 and 80
-            var (rowPosition, columnPosition) = Get2DPositionFrom1D(position);
-            if (Cells[rowPosition][columnPosition] != 0) return false;
-
-            //fix this shite
-            var row = Cells[RowFromPosition(position)];
-            if (row.Count(i => i == 0) == 1)
-            {
-                Cells[rowPosition][columnPosition] = row.FindMissingNumber();
-                return true;
-            }
-            var column = ConvertColumnToList(ColumnFromPosition(position));
-            if (column.Count(i => i == 0) == 1)
-            {
-                Cells[rowPosition][columnPosition] = column.FindMissingNumber();
-                return true;
-            }
-            var box = ConvertBoxToList(BoxFromPosition(position));
-            if (box.Count(i => i == 0) == 1)
-            {
-                Cells[rowPosition][columnPosition] = box.FindMissingNumber();
-                return true;
-            }
-            return false;
+            solvingStrategy.Solve(this);
         }
 
 
@@ -220,8 +99,6 @@ namespace Sudoku
 
             return Cells.Select(row => row[column]).ToList();
         }
-
-
 
         private BoardState CheckState()
         {
